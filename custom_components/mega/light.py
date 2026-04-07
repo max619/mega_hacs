@@ -14,10 +14,8 @@ import time
 from homeassistant.components.light import (
     PLATFORM_SCHEMA as LIGHT_SCHEMA,
     LightEntity,
-    SUPPORT_COLOR,
     ColorMode,
     LightEntityFeature,
-    # SUPPORT_WHITE_VALUE
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -111,7 +109,8 @@ async def async_setup_entry(
             continue
         for data in cfg:
             hub.lg.debug(f"add light on port %s with data %s", port, data)
-            light = MegaLight(mega=hub, port=port, config_entry=config_entry, **data)
+            light = MegaLight(mega=hub, port=port,
+                              config_entry=config_entry, **data)
             if "<" in light.name:
                 continue
             devices.append(light)
@@ -137,7 +136,6 @@ class MegaLight(MegaOutPort, LightEntity):
             return ColorMode.BRIGHTNESS
         else:
             return ColorMode.ONOFF
-
 
 
 class MegaRGBW(LightEntity, BaseMegaEntity):
@@ -222,7 +220,8 @@ class MegaRGBW(LightEntity, BaseMegaEntity):
         if not self.is_on:
             return [0 for x in range(len(self.port))] if not self.is_ws else [0] * 3
         rgb = colorsys.hsv_to_rgb(
-            self.hs_color[0] / 360, self.hs_color[1] / 100, self.brightness / 255
+            self.hs_color[0] / 360, self.hs_color[1] /
+            100, self.brightness / 255
         )
         rgb = [x for x in rgb]
         if self.white_value is not None:
@@ -275,21 +274,24 @@ class MegaRGBW(LightEntity, BaseMegaEntity):
             if item == "rgb_color":
                 _after = map_reorder_rgb(value, RGB, self._color_order)
         _after = _after or self.get_rgbw()
-        self._rgb_color = map_reorder_rgb(tuple(_after[:3]), self._color_order, RGB)
+        self._rgb_color = map_reorder_rgb(
+            tuple(_after[:3]), self._color_order, RGB)
         if transition is None:
             transition = self.smooth.total_seconds()
             ratio = self.calc_speed_ratio(_before, _after)
             transition = transition * ratio
         self.async_write_ha_state()
         ports = self.port if not self.is_ws else self.port * 3
-        config = [(port, _before[i], _after[i]) for i, port in enumerate(ports)]
+        config = [(port, _before[i], _after[i])
+                  for i, port in enumerate(ports)]
         try:
             await self.mega.smooth_dim(
                 *config,
                 time=transition,
                 ws=self.is_ws,
                 jitter=50,
-                updater=partial(self._update_from_rgb, update_state=update_state),
+                updater=partial(self._update_from_rgb,
+                                update_state=update_state),
                 can_smooth_hardware=self.can_smooth_hardware,
                 max_values=self.max_values,
                 chip=self.chip,

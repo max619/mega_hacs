@@ -41,7 +41,9 @@ async def get_hub(hass: HomeAssistant, data):
     # _mqtt = hass.data.get(mqtt.DOMAIN)
     # if not isinstance(_mqtt, mqtt.MQTT):
     #     raise exceptions.MqttNotConfigured("mqtt must be configured first")
-    hub = MegaD(hass, **data, lg=_LOGGER, loop=asyncio.get_event_loop()) #mqtt=_mqtt,
+    hub = MegaD(hass, **data, lg=_LOGGER,
+                loop=asyncio.get_event_loop())  # mqtt=_mqtt,
+
     hub.mqtt_id = await hub.get_mqtt_id()
     if not await hub.authenticate():
         raise exceptions.InvalidAuth
@@ -78,7 +80,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             hub = await validate_input(self.hass, user_input)
             await hub.start()
-            hub.new_naming=True
+            hub.new_naming = True
             config = await hub.get_config(nports=user_input.get(CONF_NPORTS, 37))
             await hub.stop()
             hub.lg.debug(f'config loaded: %s', config)
@@ -104,13 +106,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
-        return OptionsFlowHandler(config_entry)
+    def async_get_options_flow(entry):
+        return OptionsFlowHandler()
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    def __init__(self, config_entry: ConfigEntry):
-        self.config_entry = config_entry
+    def __init__(self):
+        pass
+
     async def async_step_init(self, user_input=None):
         """Manage the options."""
         new_naming = self.config_entry.data.get('new_naming', False)
@@ -119,11 +122,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             cfg = dict(self.config_entry.data)
             cfg.update(user_input)
             cfg['new_naming'] = new_naming
-            self.hass.config_entries.async_update_entry(entry=self.config_entry, data=cfg)
+            self.hass.config_entries.async_update_entry(
+                entry=self.config_entry, data=cfg)
             await get_hub(self.hass, cfg)
 
             if reload:
-                id = self.config_entry.data.get('id', self.config_entry.entry_id)
+                id = self.config_entry.data.get(
+                    'id', self.config_entry.entry_id)
                 hub: MegaD = self.hass.data[DOMAIN].get(id)
                 cfg = await hub.reload(reload_entry=False)
 
